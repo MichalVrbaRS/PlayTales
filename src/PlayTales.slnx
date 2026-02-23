@@ -1,1 +1,5 @@
-<Solution />
+<Solution>
+  <Project Path="PlayTale/PlayTale.csproj" Id="907c008f-c6ea-461d-aa5a-0f0c1258c390">
+    <Deploy Solution="Debug|*" />
+  </Project>
+</Solution>

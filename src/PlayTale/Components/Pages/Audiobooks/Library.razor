@@ -9,10 +9,14 @@
 <section class="screen">
     <header class="screen__header">
         <h1>Audiobooks</h1>
-        <button type="button" class="icon-btn" title="Import audiobook" disabled="@_isImporting" @onclick="ImportAsync">
-            @(_isImporting ? "..." : "+")
+        <button type="button" class="import-btn" title="Import audiobook" disabled="@_isImporting" @onclick="ImportAsync">
+            @(_isImporting ? "Importing..." : "Import")
         </button>
     </header>
+
+    <div class="brand-hero" aria-hidden="true">
+        <img src="/images/playtaleappicon.png?v=20260224-2" alt="PlayTale" />
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(_error))
     {

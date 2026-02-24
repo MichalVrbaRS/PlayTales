@@ -63,13 +63,13 @@
                @onchange="SeekAsync" />
 
         <div class="controls">
-            <button type="button" class="secondary-btn" @onclick="PreviousChapterAsync">Prev</button>
-            <button type="button" class="secondary-btn" @onclick="() => SkipAsync(-15)">-15</button>
-            <button type="button" class="primary-btn" @onclick="TogglePlayAsync">
-                @(_state.IsPlaying ? "Pause" : "Play")
+            <button type="button" class="secondary-btn control-btn" title="Previous chapter" @onclick="PreviousChapterAsync">⏮</button>
+            <button type="button" class="secondary-btn control-btn" title="Back 15 seconds" @onclick="() => SkipAsync(-15)">15</button>
+            <button type="button" class="primary-btn control-btn control-btn--main" @onclick="TogglePlayAsync">
+                @(_state.IsPlaying ? "II" : "▶")
             </button>
-            <button type="button" class="secondary-btn" @onclick="() => SkipAsync(30)">+30</button>
-            <button type="button" class="secondary-btn" @onclick="NextChapterAsync">Next</button>
+            <button type="button" class="secondary-btn control-btn" title="Forward 30 seconds" @onclick="() => SkipAsync(30)">30</button>
+            <button type="button" class="secondary-btn control-btn" title="Next chapter" @onclick="NextChapterAsync">⏭</button>
         </div>
 
         <div class="footer-actions">

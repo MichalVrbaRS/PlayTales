@@ -1,0 +1,61 @@
+@implements IDisposable
+@inject PlayTale.Features.Audiobooks.Services.IAudioService AudioService
+@inject NavigationManager Navigation
+
+@if (AudioService.CurrentState.ChapterId is not null)
+{
+    <div class="mini-player">
+        <div class="mini-player__meta" @onclick="OpenPlayer">
+            <div class="mini-player__title">@Title</div>
+            <div class="mini-player__subtitle">@Subtitle</div>
+        </div>
+        <button type="button" class="mini-player__button" @onclick="TogglePlayAsync">
+            @(AudioService.CurrentState.IsPlaying ? "Pause" : "Play")
+        </button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Now Playing";
+
+    [Parameter]
+    public string Subtitle { get; set; } = "Tap to open player";
+
+    protected override void OnInitialized()
+    {
+        AudioService.PlaybackStateChanged += OnPlaybackStateChanged;
+    }
+
+    private void OnPlaybackStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.PlaybackState e)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OpenPlayer()
+    {
+        var state = AudioService.CurrentState;
+        if (state.BookId is null || state.ChapterId is null)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/audiobooks/player/{state.BookId.Value:D}/{state.ChapterId.Value:D}");
+    }
+
+    private async Task TogglePlayAsync()
+    {
+        if (AudioService.CurrentState.IsPlaying)
+        {
+            await AudioService.PauseAsync();
+            return;
+        }
+
+        await AudioService.ResumeAsync();
+    }
+
+    public void Dispose()
+    {
+        AudioService.PlaybackStateChanged -= OnPlaybackStateChanged;
+    }
+}

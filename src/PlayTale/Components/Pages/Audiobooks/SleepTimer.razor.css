@@ -1,0 +1,67 @@
+.screen {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 1rem 1rem 1.5rem;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.link-btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+}
+
+.card {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    padding: 1rem;
+    display: grid;
+    gap: 0.65rem;
+    background: linear-gradient(180deg, rgba(28, 41, 61, 0.9) 0%, rgba(18, 27, 40, 0.9) 100%);
+}
+
+.label {
+    color: #b8c2d8;
+    font-size: 0.9rem;
+}
+
+select {
+    border-radius: 9px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(12, 20, 32, 0.8);
+    color: #fff;
+    padding: 0.55rem;
+}
+
+.primary-btn,
+.secondary-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.7rem;
+    color: #fff;
+}
+
+.primary-btn {
+    background: #2c7be5;
+}
+
+.secondary-btn {
+    background: rgba(95, 120, 170, 0.35);
+}
+
+.hint {
+    color: #b8c2d8;
+    font-size: 0.9rem;
+}

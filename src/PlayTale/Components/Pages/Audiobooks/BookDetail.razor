@@ -1,0 +1,168 @@
+@page "/audiobooks/book/{BookId:guid}"
+@implements IDisposable
+@inject PlayTale.Features.Audiobooks.Services.ILibraryService LibraryService
+@inject PlayTale.Features.Audiobooks.Services.IAudioService AudioService
+@inject NavigationManager Navigation
+
+<PageTitle>Book</PageTitle>
+
+<section class="screen">
+    <header class="header">
+        <button type="button" class="link-btn" @onclick="BackToLibrary">‹</button>
+        <h1>@(_book?.Title ?? "Book")</h1>
+    </header>
+
+    @if (_book is null)
+    {
+        <p>Book not found.</p>
+    }
+    else
+    {
+        <div class="cover">@GetCoverGlyph(_book.Title)</div>
+
+        <button type="button" class="primary-btn" @onclick="ResumeAsync">
+            Continue
+        </button>
+
+        <div class="actions">
+            @if (!_confirmDelete)
+            {
+                <button type="button" class="danger-btn" disabled="@_isDeleting" @onclick="ArmDelete">
+                    Remove From Library
+                </button>
+            }
+            else
+            {
+                <button type="button" class="danger-btn" disabled="@_isDeleting" @onclick="DeleteBookAsync">
+                    @(_isDeleting ? "Removing..." : "Confirm Remove")
+                </button>
+                <button type="button" class="secondary-btn" disabled="@_isDeleting" @onclick="CancelDelete">
+                    Cancel
+                </button>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="error">@_error</p>
+        }
+
+        <div class="chapters">
+            @foreach (var chapter in _chapters)
+            {
+                var isCurrent = AudioService.CurrentState.ChapterId == chapter.Id;
+                <button type="button" class="chapter @(isCurrent ? "chapter--current" : string.Empty)" @onclick="() => StartChapterAsync(chapter)">
+                    <span>@chapter.Title</span>
+                    <span>›</span>
+                </button>
+            }
+        </div>
+    }
+
+    <PlayTale.Components.Shared.Audiobooks.MiniPlayer />
+</section>
+
+@code {
+    [Parameter]
+    public Guid BookId { get; set; }
+
+    private PlayTale.Features.Audiobooks.Models.Book? _book;
+    private IReadOnlyList<PlayTale.Features.Audiobooks.Models.Chapter> _chapters = Array.Empty<PlayTale.Features.Audiobooks.Models.Chapter>();
+    private bool _confirmDelete;
+    private bool _isDeleting;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AudioService.PlaybackStateChanged += OnPlaybackStateChanged;
+        await LoadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        _book = await LibraryService.GetBookAsync(BookId);
+        _chapters = await LibraryService.GetChaptersAsync(BookId);
+    }
+
+    private async Task ResumeAsync()
+    {
+        if (_book is null || _chapters.Count == 0)
+        {
+            return;
+        }
+
+        var index = Math.Clamp(_book.LastChapterIndex, 0, _chapters.Count - 1);
+        var chapter = _chapters[index];
+        var start = Math.Max(0, _book.LastPositionSeconds - 10);
+        await AudioService.PlayAsync(chapter, start);
+        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
+    }
+
+    private async Task StartChapterAsync(PlayTale.Features.Audiobooks.Models.Chapter chapter)
+    {
+        await AudioService.PlayAsync(chapter);
+        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
+    }
+
+    private void BackToLibrary()
+    {
+        Navigation.NavigateTo("/audiobooks");
+    }
+
+    private void ArmDelete()
+    {
+        _confirmDelete = true;
+        _error = null;
+    }
+
+    private void CancelDelete()
+    {
+        _confirmDelete = false;
+    }
+
+    private async Task DeleteBookAsync()
+    {
+        try
+        {
+            _isDeleting = true;
+            _error = null;
+
+            if (AudioService.CurrentState.BookId == BookId)
+            {
+                await AudioService.StopAsync();
+            }
+
+            await LibraryService.DeleteBookAsync(BookId);
+            Navigation.NavigateTo("/audiobooks");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private void OnPlaybackStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.PlaybackState e)
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string GetCoverGlyph(string title)
+    {
+        return string.IsNullOrWhiteSpace(title) ? "A" : title.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    public void Dispose()
+    {
+        AudioService.PlaybackStateChanged -= OnPlaybackStateChanged;
+    }
+}

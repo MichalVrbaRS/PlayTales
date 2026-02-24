@@ -2,7 +2,8 @@
 ## Technical Documentation
 
 **Platform:** .NET 10 + .NET MAUI  
-**Primary Target:** iOS (Cross‑platform ready)  
+**Primary Target:** iOS  
+**Secondary Target:** Windows (local development/testing)  
 **Architecture:** MVVM + Services  
 **Document Version:** 1.0
 
@@ -24,6 +25,10 @@ The application supports:
 - Embedded cover extraction (ID3)
 - Optional online cover download
 
+Targeting note:
+- iOS is production-first.
+- Windows build must remain functional for local dev/testing workflows (import, playback, position persistence, and basic navigation).
+
 ---
 
 # 2. Technology Stack
@@ -32,6 +37,10 @@ The application supports:
 - .NET 10
 - .NET MAUI
 - C# 13+
+
+## 2.3 Platform Targets
+- iOS: primary runtime and UX baseline.
+- Windows: required local dev/test runtime.
 
 ## 2.2 NuGet Packages
 
@@ -76,10 +85,21 @@ Responsibilities:
 - Create Book + Chapter models
 - Persist data
 
-Import via:
+Import via abstraction:
+```csharp
+IFileImportService.PickFolderOrFilesAsync()
 ```
-FilePicker.Default.PickAsync()
-```
+
+iOS implementation notes:
+- Use `UIDocumentPickerViewController` for folder selection when available.
+- Persist access using security-scoped bookmarks for the selected folder/file URLs.
+- Resolve bookmarks on app launch before scanning or playback.
+- Fallback to multi-file selection when folder selection is unavailable.
+
+Windows implementation notes:
+- Allow folder/file import via MAUI picker abstractions or Windows file/folder pickers.
+- Persist local absolute paths (bookmarking not required).
+- Keep import service contract identical across platforms.
 
 Book grouping:
 - Folder-based grouping (recommended)
@@ -253,6 +273,8 @@ FileSystem.AppDataDirectory/covers/
 - int OrderIndex
 - double Duration
 - string FilePath
+- string? SourceUri
+- string? SecurityScopedBookmarkBase64
 - double LastPositionSeconds
 
 ---
@@ -269,6 +291,9 @@ Required:
 ```
 
 Configure AVAudioSession via platform-specific service if needed.
+
+Windows note:
+- Background/lock-screen media integration can be simplified for dev testing; core requirement is stable playback while app window is active.
 
 ---
 
@@ -339,13 +364,14 @@ UX Goals:
 
 ## 11.2 Import Flow
 
-### Option A – Folder Import (Recommended)
+### Option A – Folder Import (Recommended on iOS)
 1. User taps "Import Audiobook"
-2. FilePicker opens
+2. Document picker opens
 3. User selects a folder containing MP3 files
 4. App scans files
 5. Metadata extraction runs in background
-6. Book appears in Library
+6. App stores security bookmark for future access
+7. Book appears in Library
 
 Feedback:
 - Loading indicator while scanning
@@ -470,6 +496,10 @@ File moved or deleted:
 - Show "File unavailable"
 - Offer "Re-link file"
 
+Permission expired / bookmark stale:
+- Prompt user to re-select folder
+- Rebuild bookmark and resume scan/playback
+
 Corrupted file:
 - Show non-blocking toast
 
@@ -509,4 +539,3 @@ Confirmation dialog:
 ---
 
 # End of Document
-

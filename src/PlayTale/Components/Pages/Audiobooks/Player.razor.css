@@ -1,0 +1,97 @@
+.screen {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 1rem 1rem 1.5rem;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.link-btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+}
+
+.cover {
+    width: min(300px, 70vw);
+    aspect-ratio: 1;
+    margin: 0 auto 1rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #ffb149 0%, #d5671f 100%);
+    display: grid;
+    place-items: center;
+    font-size: 4rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.title {
+    text-align: center;
+    font-weight: 700;
+}
+
+.subtitle {
+    text-align: center;
+    color: #b8c2d8;
+    margin-bottom: 0.8rem;
+}
+
+.times {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #b8c2d8;
+    margin-bottom: 0.4rem;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.45rem;
+}
+
+.footer-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+
+.sleep-state {
+    margin-top: 0.7rem;
+    text-align: center;
+    color: #b8c2d8;
+    font-size: 0.9rem;
+}
+
+.primary-btn,
+.secondary-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.55rem 0.5rem;
+    color: #fff;
+}
+
+.primary-btn {
+    background: #2c7be5;
+}
+
+.secondary-btn {
+    background: rgba(95, 120, 170, 0.35);
+}

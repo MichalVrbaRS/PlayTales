@@ -1,0 +1,319 @@
+@page "/audiobooks/player/{BookId:guid}"
+@page "/audiobooks/player/{BookId:guid}/{ChapterId:guid}"
+@implements IDisposable
+@inject PlayTale.Features.Audiobooks.Services.ILibraryService LibraryService
+@inject PlayTale.Features.Audiobooks.Services.IAudioService AudioService
+@inject PlayTale.Features.Audiobooks.Services.ISleepTimerService SleepTimerService
+@inject NavigationManager Navigation
+@using System.Globalization
+
+<PageTitle>Now Playing</PageTitle>
+
+<section class="screen">
+    <header class="header">
+        <button type="button" class="link-btn" @onclick="BackToBook">‹</button>
+        <h1>Now Playing</h1>
+    </header>
+
+    @if (_currentChapter is null)
+    {
+        <p>No chapter selected.</p>
+    }
+    else
+    {
+        <div class="cover">@GetCoverGlyph(_book?.Title ?? _currentChapter.Title)</div>
+        <div class="title">@(_book?.Title ?? "Audiobook")</div>
+        <div class="subtitle">@_currentChapter.Title</div>
+
+        <div class="times">
+            <span>@FormatTime(_state.PositionSeconds)</span>
+            <span>@FormatTime(Math.Max(0, _state.DurationSeconds - _state.PositionSeconds))</span>
+        </div>
+        <input type="range"
+               min="0"
+               max="@FormatRangeNumber(Math.Max(1, _state.DurationSeconds))"
+               step="1"
+               value="@FormatRangeNumber(_seekValue)"
+               @oninput="OnSeekInput"
+               @onchange="SeekAsync" />
+
+        <div class="controls">
+            <button type="button" class="secondary-btn" @onclick="PreviousChapterAsync">Prev</button>
+            <button type="button" class="secondary-btn" @onclick="() => SkipAsync(-15)">-15</button>
+            <button type="button" class="primary-btn" @onclick="TogglePlayAsync">
+                @(_state.IsPlaying ? "Pause" : "Play")
+            </button>
+            <button type="button" class="secondary-btn" @onclick="() => SkipAsync(30)">+30</button>
+            <button type="button" class="secondary-btn" @onclick="NextChapterAsync">Next</button>
+        </div>
+
+        <div class="footer-actions">
+            <button type="button" class="secondary-btn" @onclick="ChangeSpeedAsync">@($"{_state.PlaybackSpeed:0.##}x")</button>
+            <button type="button" class="secondary-btn" @onclick="OpenSleepTimer">Sleep</button>
+        </div>
+
+        @if (_sleepTimerState.IsActive)
+        {
+            <div class="sleep-state">@GetSleepTimerText(_sleepTimerState)</div>
+        }
+    }
+</section>
+
+@code {
+    [Parameter]
+    public Guid BookId { get; set; }
+
+    [Parameter]
+    public Guid? ChapterId { get; set; }
+
+    private PlayTale.Features.Audiobooks.Models.Book? _book;
+    private List<PlayTale.Features.Audiobooks.Models.Chapter> _chapters = new();
+    private PlayTale.Features.Audiobooks.Models.Chapter? _currentChapter;
+    private bool _isSeeking;
+    private double _seekValue;
+    private PlayTale.Features.Audiobooks.Models.SleepTimerState _sleepTimerState = new()
+    {
+        Mode = PlayTale.Features.Audiobooks.Models.SleepTimerMode.Off,
+        IsActive = false
+    };
+    private PlayTale.Features.Audiobooks.Models.PlaybackState _state = new()
+    {
+        PlaybackSpeed = 1.0
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        AudioService.PlaybackStateChanged += OnPlaybackStateChanged;
+        AudioService.PlaybackEnded += OnPlaybackEnded;
+        SleepTimerService.SleepTimerStateChanged += OnSleepTimerStateChanged;
+        _sleepTimerState = SleepTimerService.CurrentState;
+        await LoadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _book = await LibraryService.GetBookAsync(BookId);
+        _chapters = (await LibraryService.GetChaptersAsync(BookId)).OrderBy(x => x.OrderIndex).ToList();
+        if (_chapters.Count == 0)
+        {
+            return;
+        }
+
+        _state = AudioService.CurrentState;
+
+        var targetChapter = ChapterId is not null
+            ? _chapters.FirstOrDefault(x => x.Id == ChapterId.Value)
+            : null;
+
+        targetChapter ??= _chapters[Math.Clamp(_book?.LastChapterIndex ?? 0, 0, _chapters.Count - 1)];
+
+        _currentChapter = targetChapter;
+
+        if (_state.ChapterId != _currentChapter.Id)
+        {
+            var start = ChapterId is not null
+                ? Math.Max(0, _currentChapter.LastPositionSeconds - 10)
+                : Math.Max(0, (_book?.LastPositionSeconds ?? 0) - 10);
+
+            await AudioService.PlayAsync(_currentChapter, start);
+            _state = AudioService.CurrentState;
+        }
+
+        _seekValue = Math.Min(Math.Max(0, _state.PositionSeconds), Math.Max(1, _state.DurationSeconds));
+    }
+
+    private async Task TogglePlayAsync()
+    {
+        if (_state.IsPlaying)
+        {
+            await AudioService.PauseAsync();
+            return;
+        }
+
+        await AudioService.ResumeAsync();
+    }
+
+    private async Task SkipAsync(double seconds)
+    {
+        await AudioService.SkipByAsync(seconds);
+    }
+
+    private async Task SeekAsync(ChangeEventArgs args)
+    {
+        _isSeeking = false;
+        if (args.Value is null)
+        {
+            return;
+        }
+
+        if (!double.TryParse(
+                args.Value.ToString(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var value))
+        {
+            return;
+        }
+
+        _seekValue = value;
+        await AudioService.SeekAsync(value);
+    }
+
+    private void OnSeekInput(ChangeEventArgs args)
+    {
+        _isSeeking = true;
+        if (args.Value is null)
+        {
+            return;
+        }
+
+        if (!double.TryParse(
+                args.Value.ToString(),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out var value))
+        {
+            return;
+        }
+
+        _seekValue = value;
+    }
+
+    private async Task PreviousChapterAsync()
+    {
+        if (_currentChapter is null)
+        {
+            return;
+        }
+
+        var currentIndex = _chapters.FindIndex(x => x.Id == _currentChapter.Id);
+        if (currentIndex <= 0)
+        {
+            return;
+        }
+
+        await PlayChapterAsync(_chapters[currentIndex - 1]);
+    }
+
+    private async Task NextChapterAsync()
+    {
+        if (_currentChapter is null)
+        {
+            return;
+        }
+
+        var currentIndex = _chapters.FindIndex(x => x.Id == _currentChapter.Id);
+        if (currentIndex < 0 || currentIndex >= _chapters.Count - 1)
+        {
+            return;
+        }
+
+        await PlayChapterAsync(_chapters[currentIndex + 1]);
+    }
+
+    private async Task PlayChapterAsync(PlayTale.Features.Audiobooks.Models.Chapter chapter)
+    {
+        _currentChapter = chapter;
+        await AudioService.PlayAsync(chapter);
+        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}", forceLoad: false);
+    }
+
+    private async Task ChangeSpeedAsync()
+    {
+        var speeds = new[] { 1.0, 1.25, 1.5, 1.75, 2.0 };
+        var currentIndex = Array.FindIndex(speeds, x => Math.Abs(x - _state.PlaybackSpeed) < 0.01);
+        var nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % speeds.Length;
+        await AudioService.SetPlaybackSpeedAsync(speeds[nextIndex]);
+    }
+
+    private void OpenSleepTimer()
+    {
+        if (_currentChapter is null)
+        {
+            return;
+        }
+
+        Navigation.NavigateTo($"/audiobooks/sleep/{BookId:D}/{_currentChapter.Id:D}");
+    }
+
+    private void BackToBook()
+    {
+        Navigation.NavigateTo($"/audiobooks/book/{BookId:D}");
+    }
+
+    private void OnPlaybackStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.PlaybackState e)
+    {
+        _state = e;
+        if (!_isSeeking)
+        {
+            _seekValue = Math.Min(Math.Max(0, e.PositionSeconds), Math.Max(1, e.DurationSeconds));
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnPlaybackEnded(object? sender, EventArgs args)
+    {
+        SleepTimerService.OnChapterCompleted();
+    }
+
+    private void OnSleepTimerStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.SleepTimerState state)
+    {
+        _sleepTimerState = state;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string FormatTime(double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        return ts.TotalHours >= 1 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
+    }
+
+    private static string GetCoverGlyph(string title)
+    {
+        return string.IsNullOrWhiteSpace(title) ? "A" : title.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    private static string FormatRangeNumber(double value)
+    {
+        return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
+
+    private static string GetSleepTimerText(PlayTale.Features.Audiobooks.Models.SleepTimerState state)
+    {
+        return state.Mode switch
+        {
+            PlayTale.Features.Audiobooks.Models.SleepTimerMode.Duration when state.EndsAtUtc is not null
+                => $"Sleep in {FormatRemaining(state.EndsAtUtc.Value)}",
+            PlayTale.Features.Audiobooks.Models.SleepTimerMode.EndOfChapter
+                => "Sleep at end of chapter",
+            PlayTale.Features.Audiobooks.Models.SleepTimerMode.ChapterCount
+                => $"Sleep after {state.RemainingChapters ?? 0} chapter(s)",
+            _ => "Sleep timer active"
+        };
+    }
+
+    private static string FormatRemaining(DateTimeOffset endsAtUtc)
+    {
+        var remaining = endsAtUtc - DateTimeOffset.UtcNow;
+        if (remaining < TimeSpan.Zero)
+        {
+            return "00:00";
+        }
+
+        return remaining.TotalHours >= 1
+            ? remaining.ToString(@"hh\:mm\:ss")
+            : remaining.ToString(@"mm\:ss");
+    }
+
+    public void Dispose()
+    {
+        AudioService.PlaybackStateChanged -= OnPlaybackStateChanged;
+        AudioService.PlaybackEnded -= OnPlaybackEnded;
+        SleepTimerService.SleepTimerStateChanged -= OnSleepTimerStateChanged;
+    }
+}

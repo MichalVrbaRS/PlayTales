@@ -1,0 +1,136 @@
+@page "/audiobooks/sleep/{BookId:guid}/{ChapterId:guid}"
+@implements IDisposable
+@inject PlayTale.Features.Audiobooks.Services.ISleepTimerService SleepTimerService
+@inject NavigationManager Navigation
+
+<PageTitle>Sleep Timer</PageTitle>
+
+<section class="screen">
+    <header class="header">
+        <button type="button" class="link-btn" @onclick="BackToPlayer">‹</button>
+        <h1>Sleep Timer</h1>
+    </header>
+
+    <div class="card">
+        <label class="label" for="minutes">Stop After</label>
+        <select id="minutes" @bind="_minutes">
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="20">20 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+        </select>
+
+        <label class="label" for="mode">Mode</label>
+        <select id="mode" @bind="_mode">
+            <option value="duration">After selected minutes</option>
+            <option value="chapter">At end of current chapter</option>
+            <option value="chapters">After 2 chapters</option>
+        </select>
+
+        <button type="button" class="primary-btn" @onclick="StartTimerAsync">Start</button>
+        <button type="button" class="secondary-btn" @onclick="BackToPlayer">Cancel</button>
+    </div>
+
+    @if (_state.IsActive)
+    {
+        <p class="hint">@GetActiveText(_state)</p>
+        <button type="button" class="secondary-btn" @onclick="CancelTimerAsync">Disable Sleep Timer</button>
+    }
+    else if (_startedMessage is not null)
+    {
+        <p class="hint">@_startedMessage</p>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public Guid BookId { get; set; }
+
+    [Parameter]
+    public Guid ChapterId { get; set; }
+
+    private int _minutes = 15;
+    private string _mode = "duration";
+    private string? _startedMessage;
+    private PlayTale.Features.Audiobooks.Models.SleepTimerState _state = new()
+    {
+        Mode = PlayTale.Features.Audiobooks.Models.SleepTimerMode.Off,
+        IsActive = false
+    };
+
+    protected override void OnInitialized()
+    {
+        _state = SleepTimerService.CurrentState;
+        SleepTimerService.SleepTimerStateChanged += OnSleepTimerStateChanged;
+    }
+
+    private async Task StartTimerAsync()
+    {
+        _startedMessage = null;
+        switch (_mode)
+        {
+            case "chapter":
+                await SleepTimerService.StartUntilEndOfChapterAsync();
+                break;
+            case "chapters":
+                await SleepTimerService.StartForChapterCountAsync(2);
+                break;
+            default:
+                await SleepTimerService.StartForDurationAsync(TimeSpan.FromMinutes(_minutes));
+                break;
+        }
+
+        BackToPlayer();
+    }
+
+    private async Task CancelTimerAsync()
+    {
+        await SleepTimerService.CancelAsync();
+        _startedMessage = "Sleep timer disabled.";
+    }
+
+    private void BackToPlayer()
+    {
+        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{ChapterId:D}");
+    }
+
+    private void OnSleepTimerStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.SleepTimerState state)
+    {
+        _state = state;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string GetActiveText(PlayTale.Features.Audiobooks.Models.SleepTimerState state)
+    {
+        return state.Mode switch
+        {
+            PlayTale.Features.Audiobooks.Models.SleepTimerMode.Duration when state.EndsAtUtc is not null
+                => $"Stops in {FormatRemaining(state.EndsAtUtc.Value)}",
+            PlayTale.Features.Audiobooks.Models.SleepTimerMode.EndOfChapter
+                => "Will stop at end of current chapter.",
+            PlayTale.Features.Audiobooks.Models.SleepTimerMode.ChapterCount
+                => $"Will stop after {state.RemainingChapters ?? 0} chapter(s).",
+            _ => "Sleep timer inactive."
+        };
+    }
+
+    private static string FormatRemaining(DateTimeOffset endsAtUtc)
+    {
+        var remaining = endsAtUtc - DateTimeOffset.UtcNow;
+        if (remaining < TimeSpan.Zero)
+        {
+            return "00:00";
+        }
+
+        return remaining.TotalHours >= 1
+            ? remaining.ToString(@"hh\:mm\:ss")
+            : remaining.ToString(@"mm\:ss");
+    }
+
+    public void Dispose()
+    {
+        SleepTimerService.SleepTimerStateChanged -= OnSleepTimerStateChanged;
+    }
+}

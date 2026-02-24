@@ -1,0 +1,98 @@
+.screen {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 1rem 1rem 1.5rem;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.link-btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+}
+
+.cover {
+    width: min(300px, 70vw);
+    aspect-ratio: 1;
+    margin: 0 auto 1rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #ffb149 0%, #d5671f 100%);
+    display: grid;
+    place-items: center;
+    font-size: 4rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.primary-btn {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+    background: #2c7be5;
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+}
+
+.actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+}
+
+.danger-btn,
+.secondary-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    color: #fff;
+}
+
+.danger-btn {
+    background: #c24141;
+}
+
+.secondary-btn {
+    background: rgba(95, 120, 170, 0.35);
+}
+
+.error {
+    color: #ffb4b4;
+}
+
+.chapters {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.chapter {
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+    background: rgba(16, 25, 39, 0.72);
+    color: inherit;
+    padding: 0.7rem 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chapter--current {
+    border-color: #2c7be5;
+}

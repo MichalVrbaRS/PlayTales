@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+using PlayTale.Features.Audiobooks.Services;
 
 namespace PlayTale
 {
@@ -15,10 +16,11 @@ namespace PlayTale
                 });
 
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddAudiobooksFeature();
 
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();

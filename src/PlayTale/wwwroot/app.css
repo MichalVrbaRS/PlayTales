@@ -7,6 +7,14 @@ body {
     color: #eef2ff;
 }
 
+.status-bar-safe-area {
+    height: env(safe-area-inset-top, 0px);
+}
+
+#app {
+    min-height: calc(100vh - env(safe-area-inset-top, 0px));
+}
+
 :root {
     --bg-card-top: rgba(33, 48, 72, 0.9);
     --bg-card-bottom: rgba(18, 28, 43, 0.92);

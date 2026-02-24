@@ -64,6 +64,27 @@ public sealed class BookCoverService : IBookCoverService
     private static byte[]? TryExtractEmbeddedCoverBytes(IReadOnlyList<Chapter> chapters)
     {
 #if ANDROID
+        foreach (var chapter in chapters)
+        {
+            if (string.IsNullOrWhiteSpace(chapter.FilePath) || !File.Exists(chapter.FilePath))
+            {
+                continue;
+            }
+
+            try
+            {
+                var bytes = TryExtractEmbeddedCoverBytesFromId3(chapter.FilePath);
+                if (bytes is { Length: > 0 })
+                {
+                    return bytes;
+                }
+            }
+            catch
+            {
+                // Ignore malformed tags and continue scanning.
+            }
+        }
+
         return null;
 #else
         foreach (var chapter in chapters)
@@ -91,6 +112,251 @@ public sealed class BookCoverService : IBookCoverService
         return null;
 #endif
     }
+
+#if ANDROID
+    private static byte[]? TryExtractEmbeddedCoverBytesFromId3(string filePath)
+    {
+        using var stream = File.OpenRead(filePath);
+        using var reader = new BinaryReader(stream);
+
+        if (stream.Length < 10)
+        {
+            return null;
+        }
+
+        var header = reader.ReadBytes(10);
+        if (header.Length < 10 || header[0] != (byte)'I' || header[1] != (byte)'D' || header[2] != (byte)'3')
+        {
+            return null;
+        }
+
+        var majorVersion = header[3];
+        var flags = header[5];
+        var tagSize = DecodeSynchsafeInt(header.AsSpan(6, 4));
+        if (tagSize <= 0 || stream.Length < 10 + tagSize)
+        {
+            return null;
+        }
+
+        var tagData = reader.ReadBytes(tagSize);
+        if ((flags & 0x80) != 0)
+        {
+            tagData = RemoveUnsynchronization(tagData);
+        }
+
+        return majorVersion == 2
+            ? TryExtractApicV22(tagData)
+            : TryExtractApicV23OrV24(tagData, majorVersion);
+    }
+
+    private static byte[]? TryExtractApicV23OrV24(byte[] tagData, int majorVersion)
+    {
+        var offset = 0;
+        while (offset + 10 <= tagData.Length)
+        {
+            var id = System.Text.Encoding.ASCII.GetString(tagData, offset, 4);
+            if (string.IsNullOrWhiteSpace(id) || id.Trim('\0').Length == 0)
+            {
+                break;
+            }
+
+            var size = majorVersion == 4
+                ? DecodeSynchsafeInt(tagData.AsSpan(offset + 4, 4))
+                : DecodeBigEndianInt(tagData.AsSpan(offset + 4, 4));
+
+            if (size <= 0 || offset + 10 + size > tagData.Length)
+            {
+                break;
+            }
+
+            if (id == "APIC")
+            {
+                var payload = tagData.AsSpan(offset + 10, size).ToArray();
+                return ParseApicPayload(payload);
+            }
+
+            offset += 10 + size;
+        }
+
+        return null;
+    }
+
+    private static byte[]? TryExtractApicV22(byte[] tagData)
+    {
+        var offset = 0;
+        while (offset + 6 <= tagData.Length)
+        {
+            var id = System.Text.Encoding.ASCII.GetString(tagData, offset, 3);
+            if (string.IsNullOrWhiteSpace(id) || id.Trim('\0').Length == 0)
+            {
+                break;
+            }
+
+            var size = (tagData[offset + 3] << 16) | (tagData[offset + 4] << 8) | tagData[offset + 5];
+            if (size <= 0 || offset + 6 + size > tagData.Length)
+            {
+                break;
+            }
+
+            if (id == "PIC")
+            {
+                var payload = tagData.AsSpan(offset + 6, size).ToArray();
+                return ParsePicPayload(payload);
+            }
+
+            offset += 6 + size;
+        }
+
+        return null;
+    }
+
+    private static byte[]? ParseApicPayload(byte[] payload)
+    {
+        if (payload.Length < 4)
+        {
+            return null;
+        }
+
+        var textEncoding = payload[0];
+        var index = 1;
+
+        var mimeEnd = Array.IndexOf(payload, (byte)0, index);
+        if (mimeEnd < 0)
+        {
+            return null;
+        }
+
+        index = mimeEnd + 1;
+        if (index >= payload.Length)
+        {
+            return null;
+        }
+
+        // Picture type byte (ignored, we keep first APIC image).
+        index++;
+        if (index >= payload.Length)
+        {
+            return null;
+        }
+
+        var descEnd = FindTextTerminator(payload, index, textEncoding);
+        if (descEnd < 0)
+        {
+            return null;
+        }
+
+        index = descEnd;
+        if (textEncoding == 1 || textEncoding == 2)
+        {
+            index += 2;
+        }
+        else
+        {
+            index += 1;
+        }
+
+        if (index >= payload.Length)
+        {
+            return null;
+        }
+
+        return payload.AsSpan(index).ToArray();
+    }
+
+    private static byte[]? ParsePicPayload(byte[] payload)
+    {
+        if (payload.Length < 6)
+        {
+            return null;
+        }
+
+        var textEncoding = payload[0];
+        var index = 1;
+
+        // ID3v2.2 stores 3-byte image format (e.g., "PNG", "JPG").
+        index += 3;
+        if (index >= payload.Length)
+        {
+            return null;
+        }
+
+        // Picture type byte.
+        index++;
+        if (index >= payload.Length)
+        {
+            return null;
+        }
+
+        var descEnd = FindTextTerminator(payload, index, textEncoding);
+        if (descEnd < 0)
+        {
+            return null;
+        }
+
+        index = descEnd;
+        if (textEncoding == 1 || textEncoding == 2)
+        {
+            index += 2;
+        }
+        else
+        {
+            index += 1;
+        }
+
+        if (index >= payload.Length)
+        {
+            return null;
+        }
+
+        return payload.AsSpan(index).ToArray();
+    }
+
+    private static int FindTextTerminator(byte[] buffer, int start, byte textEncoding)
+    {
+        if (textEncoding == 1 || textEncoding == 2)
+        {
+            for (var i = start; i + 1 < buffer.Length; i += 2)
+            {
+                if (buffer[i] == 0 && buffer[i + 1] == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        return Array.IndexOf(buffer, (byte)0, start);
+    }
+
+    private static int DecodeSynchsafeInt(ReadOnlySpan<byte> bytes)
+    {
+        return (bytes[0] << 21) | (bytes[1] << 14) | (bytes[2] << 7) | bytes[3];
+    }
+
+    private static int DecodeBigEndianInt(ReadOnlySpan<byte> bytes)
+    {
+        return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    }
+
+    private static byte[] RemoveUnsynchronization(byte[] input)
+    {
+        var output = new List<byte>(input.Length);
+        for (var i = 0; i < input.Length; i++)
+        {
+            if (i + 1 < input.Length && input[i] == 0xFF && input[i + 1] == 0x00)
+            {
+                output.Add(0xFF);
+                i++;
+                continue;
+            }
+
+            output.Add(input[i]);
+        }
+
+        return output.ToArray();
+    }
+#endif
 
     private static async Task<byte[]?> TryDownloadCoverBytesAsync(string bookTitle, string? author, CancellationToken cancellationToken)
     {

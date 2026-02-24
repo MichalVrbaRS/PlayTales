@@ -2,6 +2,7 @@
 @page "/audiobooks"
 @inject PlayTale.Features.Audiobooks.Services.ILibraryService LibraryService
 @inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components
 
 <PageTitle>Audiobooks</PageTitle>
 
@@ -50,11 +51,26 @@
 @code {
     private readonly List<PlayTale.Features.Audiobooks.Models.Book> _books = new();
     private bool _isImporting;
+    private bool _reimportAttempted;
     private string? _error;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "reimport")]
+    public bool? Reimport { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadBooksAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Reimport == true && !_reimportAttempted)
+        {
+            _reimportAttempted = true;
+            await ImportAsync();
+            Navigation.NavigateTo("/audiobooks", replace: true);
+        }
     }
 
     private async Task LoadBooksAsync()
@@ -67,6 +83,11 @@
 
     private async Task ImportAsync()
     {
+        if (_isImporting)
+        {
+            return;
+        }
+
         try
         {
             _isImporting = true;

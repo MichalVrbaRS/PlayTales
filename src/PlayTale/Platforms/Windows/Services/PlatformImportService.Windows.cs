@@ -55,7 +55,7 @@ public sealed partial class PlatformImportService
 
             var sourcePath = file.FullPath!;
             var fileName = Path.GetFileName(sourcePath);
-            var targetPath = EnsureUniquePath(Path.Combine(importFolderPath, fileName));
+            var targetPath = Path.Combine(importFolderPath, fileName);
 
             await using var sourceStream = File.OpenRead(sourcePath);
             await using var targetStream = File.Create(targetPath);
@@ -75,28 +75,5 @@ public sealed partial class PlatformImportService
         return string.IsNullOrWhiteSpace(sanitized) ? "import" : sanitized;
     }
 
-    private static string EnsureUniquePath(string path)
-    {
-        if (!File.Exists(path))
-        {
-            return path;
-        }
-
-        var directory = Path.GetDirectoryName(path) ?? string.Empty;
-        var baseName = Path.GetFileNameWithoutExtension(path);
-        var extension = Path.GetExtension(path);
-        var index = 1;
-
-        while (true)
-        {
-            var candidate = Path.Combine(directory, $"{baseName}_{index}{extension}");
-            if (!File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            index++;
-        }
-    }
 #endif
 }

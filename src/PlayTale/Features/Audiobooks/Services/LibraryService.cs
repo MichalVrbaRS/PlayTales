@@ -72,6 +72,14 @@ public sealed class LibraryService : ILibraryService
             .ToList();
 
         var title = ResolveBookTitle(sources, orderedChapters);
+
+        var duplicateBook = await FindDuplicateBookAsync(title, orderedChapters, cancellationToken);
+        if (duplicateBook is not null)
+        {
+            await _settingsStore.SetLastOpenedBookIdAsync(duplicateBook.Id, cancellationToken);
+            return duplicateBook;
+        }
+
         var book = new Book
         {
             Id = Guid.NewGuid(),
@@ -138,5 +146,50 @@ public sealed class LibraryService : ILibraryService
         }
 
         return $"Imported {DateTime.Now:yyyy-MM-dd HH:mm}";
+    }
+
+    private async Task<Book?> FindDuplicateBookAsync(
+        string candidateTitle,
+        IReadOnlyList<Chapter> candidateChapters,
+        CancellationToken cancellationToken)
+    {
+        var books = await _repository.GetBooksAsync(cancellationToken);
+        var candidateSignature = BuildChapterSignature(candidateChapters);
+
+        foreach (var book in books)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!string.Equals(book.Title.Trim(), candidateTitle.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var existingChapters = await _repository.GetChaptersAsync(book.Id, cancellationToken);
+            var existingSignature = BuildChapterSignature(existingChapters);
+            if (string.Equals(existingSignature, candidateSignature, StringComparison.Ordinal))
+            {
+                return book;
+            }
+        }
+
+        return null;
+    }
+
+    private static string BuildChapterSignature(IReadOnlyList<Chapter> chapters)
+    {
+        return string.Join(
+            "|",
+            chapters
+                .OrderBy(x => x.OrderIndex)
+                .Select(x =>
+                {
+                    return $"{x.OrderIndex}:{NormalizeToken(x.Title)}";
+                }));
+    }
+
+    private static string NormalizeToken(string value)
+    {
+        return value.Trim().ToUpperInvariant();
     }
 }

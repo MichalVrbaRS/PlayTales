@@ -18,6 +18,17 @@
     }
     else
     {
+        @if (!string.IsNullOrWhiteSpace(_playbackError))
+        {
+            <div class="missing-file">
+                <p>@_playbackError</p>
+                <div class="missing-file__actions">
+                    <button type="button" class="secondary-btn" @onclick="ReimportBook">Re-import Audiobook</button>
+                    <button type="button" class="danger-btn" @onclick="ArmDelete">Remove From Library</button>
+                </div>
+            </div>
+        }
+
         <div class="cover">@GetCoverGlyph(_book.Title)</div>
 
         <button type="button" class="primary-btn" @onclick="ResumeAsync">
@@ -71,6 +82,7 @@
     private bool _confirmDelete;
     private bool _isDeleting;
     private string? _error;
+    private string? _playbackError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,6 +98,7 @@
     private async Task LoadAsync()
     {
         _error = null;
+        _playbackError = null;
         _book = await LibraryService.GetBookAsync(BookId);
         _chapters = await LibraryService.GetChaptersAsync(BookId);
     }
@@ -100,19 +113,38 @@
         var index = Math.Clamp(_book.LastChapterIndex, 0, _chapters.Count - 1);
         var chapter = _chapters[index];
         var start = Math.Max(0, _book.LastPositionSeconds - 10);
-        await AudioService.PlayAsync(chapter, start);
-        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
+        try
+        {
+            await AudioService.PlayAsync(chapter, start);
+            Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
+        }
+        catch (FileNotFoundException)
+        {
+            _playbackError = "File unavailable. The source audio was moved or deleted.";
+        }
     }
 
     private async Task StartChapterAsync(PlayTale.Features.Audiobooks.Models.Chapter chapter)
     {
-        await AudioService.PlayAsync(chapter);
-        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
+        try
+        {
+            await AudioService.PlayAsync(chapter);
+            Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
+        }
+        catch (FileNotFoundException)
+        {
+            _playbackError = "File unavailable. The selected chapter cannot be opened.";
+        }
     }
 
     private void BackToLibrary()
     {
         Navigation.NavigateTo("/audiobooks");
+    }
+
+    private void ReimportBook()
+    {
+        Navigation.NavigateTo("/audiobooks?reimport=true");
     }
 
     private void ArmDelete()

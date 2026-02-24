@@ -21,6 +21,19 @@
     }
     else
     {
+        @if (!string.IsNullOrWhiteSpace(_playbackError))
+        {
+            <div class="missing-file">
+                <p>@_playbackError</p>
+                <div class="missing-file__actions">
+                    <button type="button" class="secondary-btn" @onclick="ReimportBook">Re-import Audiobook</button>
+                    <button type="button" class="secondary-btn" disabled="@_isDeleting" @onclick="RemoveBookAsync">
+                        @(_isDeleting ? "Removing..." : "Remove From Library")
+                    </button>
+                </div>
+            </div>
+        }
+
         <div class="cover">@GetCoverGlyph(_book?.Title ?? _currentChapter.Title)</div>
         <div class="title">@(_book?.Title ?? "Audiobook")</div>
         <div class="subtitle">@_currentChapter.Title</div>
@@ -71,6 +84,8 @@
     private PlayTale.Features.Audiobooks.Models.Chapter? _currentChapter;
     private bool _isSeeking;
     private double _seekValue;
+    private bool _isDeleting;
+    private string? _playbackError;
     private PlayTale.Features.Audiobooks.Models.SleepTimerState _sleepTimerState = new()
     {
         Mode = PlayTale.Features.Audiobooks.Models.SleepTimerMode.Off,
@@ -99,6 +114,7 @@
     {
         _book = await LibraryService.GetBookAsync(BookId);
         _chapters = (await LibraryService.GetChaptersAsync(BookId)).OrderBy(x => x.OrderIndex).ToList();
+        _playbackError = null;
         if (_chapters.Count == 0)
         {
             return;
@@ -120,8 +136,15 @@
                 ? Math.Max(0, _currentChapter.LastPositionSeconds - 10)
                 : Math.Max(0, (_book?.LastPositionSeconds ?? 0) - 10);
 
-            await AudioService.PlayAsync(_currentChapter, start);
-            _state = AudioService.CurrentState;
+            try
+            {
+                await AudioService.PlayAsync(_currentChapter, start);
+                _state = AudioService.CurrentState;
+            }
+            catch (FileNotFoundException)
+            {
+                _playbackError = "File unavailable. The source audio was moved or deleted.";
+            }
         }
 
         _seekValue = Math.Min(Math.Max(0, _state.PositionSeconds), Math.Max(1, _state.DurationSeconds));
@@ -219,8 +242,16 @@
     private async Task PlayChapterAsync(PlayTale.Features.Audiobooks.Models.Chapter chapter)
     {
         _currentChapter = chapter;
-        await AudioService.PlayAsync(chapter);
-        Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}", forceLoad: false);
+        try
+        {
+            await AudioService.PlayAsync(chapter);
+            _playbackError = null;
+            Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}", forceLoad: false);
+        }
+        catch (FileNotFoundException)
+        {
+            _playbackError = "File unavailable. The selected chapter cannot be opened.";
+        }
     }
 
     private async Task ChangeSpeedAsync()
@@ -244,6 +275,26 @@
     private void BackToBook()
     {
         Navigation.NavigateTo($"/audiobooks/book/{BookId:D}");
+    }
+
+    private void ReimportBook()
+    {
+        Navigation.NavigateTo("/audiobooks?reimport=true");
+    }
+
+    private async Task RemoveBookAsync()
+    {
+        try
+        {
+            _isDeleting = true;
+            await AudioService.StopAsync();
+            await LibraryService.DeleteBookAsync(BookId);
+            Navigation.NavigateTo("/audiobooks");
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
     }
 
     private void OnPlaybackStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.PlaybackState e)

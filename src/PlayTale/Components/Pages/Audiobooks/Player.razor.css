@@ -80,6 +80,23 @@ input[type="range"] {
     font-size: 0.9rem;
 }
 
+.missing-file {
+    border: 1px solid rgba(244, 114, 114, 0.5);
+    background: rgba(127, 29, 29, 0.35);
+    border-radius: 10px;
+    padding: 0.7rem;
+    margin-bottom: 0.8rem;
+}
+
+.missing-file p {
+    margin: 0 0 0.5rem;
+}
+
+.missing-file__actions {
+    display: flex;
+    gap: 0.45rem;
+}
+
 .primary-btn,
 .secondary-btn {
     border: 0;

@@ -76,6 +76,20 @@ public sealed partial class PlatformImportService : IImportService
             return Array.Empty<ImportSource>();
         }
 
+        if (validFiles.Count == 1)
+        {
+            var file = validFiles[0];
+            return new[]
+            {
+                new ImportSource(
+                    ImportSourceType.Files,
+                    file.FileName,
+                    file.FullPath,
+                    SourceUri: null,
+                    SecurityScopedBookmarkBase64: null)
+            };
+        }
+
         var firstDirectory = Path.GetDirectoryName(validFiles[0].FullPath);
         var sameDirectory = !string.IsNullOrWhiteSpace(firstDirectory) &&
                             validFiles.All(x => string.Equals(Path.GetDirectoryName(x.FullPath), firstDirectory, StringComparison.OrdinalIgnoreCase));

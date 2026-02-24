@@ -148,6 +148,11 @@ public sealed class LibraryService : ILibraryService
 
     private static string ResolveBookTitle(IReadOnlyList<ImportSource> sources, IReadOnlyList<Chapter> chapters)
     {
+        if (chapters.Count == 1 && !string.IsNullOrWhiteSpace(chapters[0].Title))
+        {
+            return chapters[0].Title;
+        }
+
         if (sources.Count == 1 && !string.IsNullOrWhiteSpace(sources[0].DisplayName))
         {
             return sources[0].DisplayName;

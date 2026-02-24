@@ -54,6 +54,7 @@
     private int _minutes = 15;
     private string _mode = "duration";
     private string? _startedMessage;
+    private CancellationTokenSource? _countdownCts;
     private PlayTale.Features.Audiobooks.Models.SleepTimerState _state = new()
     {
         Mode = PlayTale.Features.Audiobooks.Models.SleepTimerMode.Off,
@@ -64,6 +65,7 @@
     {
         _state = SleepTimerService.CurrentState;
         SleepTimerService.SleepTimerStateChanged += OnSleepTimerStateChanged;
+        UpdateCountdownTicker();
     }
 
     private async Task StartTimerAsync()
@@ -99,6 +101,7 @@
     private void OnSleepTimerStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.SleepTimerState state)
     {
         _state = state;
+        UpdateCountdownTicker();
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -131,6 +134,57 @@
 
     public void Dispose()
     {
+        StopCountdownTicker();
         SleepTimerService.SleepTimerStateChanged -= OnSleepTimerStateChanged;
+    }
+
+    private void UpdateCountdownTicker()
+    {
+        if (_state.IsActive && _state.Mode == PlayTale.Features.Audiobooks.Models.SleepTimerMode.Duration)
+        {
+            StartCountdownTicker();
+        }
+        else
+        {
+            StopCountdownTicker();
+        }
+    }
+
+    private void StartCountdownTicker()
+    {
+        if (_countdownCts is not null)
+        {
+            return;
+        }
+
+        _countdownCts = new CancellationTokenSource();
+        _ = RunCountdownTickerAsync(_countdownCts.Token);
+    }
+
+    private async Task RunCountdownTickerAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StopCountdownTicker()
+    {
+        if (_countdownCts is null)
+        {
+            return;
+        }
+
+        _countdownCts.Cancel();
+        _countdownCts.Dispose();
+        _countdownCts = null;
     }
 }

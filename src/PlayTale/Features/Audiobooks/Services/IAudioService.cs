@@ -23,4 +23,6 @@ public interface IAudioService
     Task SkipByAsync(double deltaSeconds, CancellationToken cancellationToken = default);
 
     Task SetPlaybackSpeedAsync(double speed, CancellationToken cancellationToken = default);
+
+    void SetNowPlayingMetadata(string? bookTitle, string? chapterTitle = null);
 }

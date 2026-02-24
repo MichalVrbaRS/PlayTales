@@ -86,6 +86,7 @@
     private double _seekValue;
     private bool _isDeleting;
     private string? _playbackError;
+    private CancellationTokenSource? _countdownCts;
     private PlayTale.Features.Audiobooks.Models.SleepTimerState _sleepTimerState = new()
     {
         Mode = PlayTale.Features.Audiobooks.Models.SleepTimerMode.Off,
@@ -102,6 +103,7 @@
         AudioService.PlaybackEnded += OnPlaybackEnded;
         SleepTimerService.SleepTimerStateChanged += OnSleepTimerStateChanged;
         _sleepTimerState = SleepTimerService.CurrentState;
+        UpdateCountdownTicker();
         await LoadAsync();
     }
 
@@ -129,6 +131,7 @@
         targetChapter ??= _chapters[Math.Clamp(_book?.LastChapterIndex ?? 0, 0, _chapters.Count - 1)];
 
         _currentChapter = targetChapter;
+        AudioService.SetNowPlayingMetadata(_book?.Title, _currentChapter.Title);
 
         if (_state.ChapterId != _currentChapter.Id)
         {
@@ -242,6 +245,7 @@
     private async Task PlayChapterAsync(PlayTale.Features.Audiobooks.Models.Chapter chapter)
     {
         _currentChapter = chapter;
+        AudioService.SetNowPlayingMetadata(_book?.Title, chapter.Title);
         try
         {
             await AudioService.PlayAsync(chapter);
@@ -315,6 +319,7 @@
     private void OnSleepTimerStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.SleepTimerState state)
     {
         _sleepTimerState = state;
+        UpdateCountdownTicker();
         _ = InvokeAsync(StateHasChanged);
     }
 
@@ -363,8 +368,59 @@
 
     public void Dispose()
     {
+        StopCountdownTicker();
         AudioService.PlaybackStateChanged -= OnPlaybackStateChanged;
         AudioService.PlaybackEnded -= OnPlaybackEnded;
         SleepTimerService.SleepTimerStateChanged -= OnSleepTimerStateChanged;
+    }
+
+    private void UpdateCountdownTicker()
+    {
+        if (_sleepTimerState.IsActive && _sleepTimerState.Mode == PlayTale.Features.Audiobooks.Models.SleepTimerMode.Duration)
+        {
+            StartCountdownTicker();
+        }
+        else
+        {
+            StopCountdownTicker();
+        }
+    }
+
+    private void StartCountdownTicker()
+    {
+        if (_countdownCts is not null)
+        {
+            return;
+        }
+
+        _countdownCts = new CancellationTokenSource();
+        _ = RunCountdownTickerAsync(_countdownCts.Token);
+    }
+
+    private async Task RunCountdownTickerAsync(CancellationToken token)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StopCountdownTicker()
+    {
+        if (_countdownCts is null)
+        {
+            return;
+        }
+
+        _countdownCts.Cancel();
+        _countdownCts.Dispose();
+        _countdownCts = null;
     }
 }

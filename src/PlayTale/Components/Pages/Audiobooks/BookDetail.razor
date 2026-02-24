@@ -115,6 +115,7 @@
         var start = Math.Max(0, _book.LastPositionSeconds - 10);
         try
         {
+            AudioService.SetNowPlayingMetadata(_book.Title, chapter.Title);
             await AudioService.PlayAsync(chapter, start);
             Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
         }
@@ -128,6 +129,7 @@
     {
         try
         {
+            AudioService.SetNowPlayingMetadata(_book?.Title, chapter.Title);
             await AudioService.PlayAsync(chapter);
             Navigation.NavigateTo($"/audiobooks/player/{BookId:D}/{chapter.Id:D}");
         }

@@ -16,6 +16,8 @@ public sealed class MauiAudioService : IAudioService
     private IAudioPlayer? _player;
     private Stream? _currentStream;
     private Chapter? _currentChapter;
+    private string? _currentBookTitle;
+    private string? _currentChapterTitleOverride;
     private CancellationTokenSource? _pollingCts;
 
     public MauiAudioService(IAudioManager audioManager, IPlatformMediaSessionService platformMediaSessionService)
@@ -37,6 +39,14 @@ public sealed class MauiAudioService : IAudioService
     public event EventHandler<PlaybackState>? PlaybackStateChanged;
 
     public event EventHandler? PlaybackEnded;
+
+    public void SetNowPlayingMetadata(string? bookTitle, string? chapterTitle = null)
+    {
+        _currentBookTitle = string.IsNullOrWhiteSpace(bookTitle) ? null : bookTitle.Trim();
+        _currentChapterTitleOverride = string.IsNullOrWhiteSpace(chapterTitle) ? null : chapterTitle.Trim();
+        var labels = ResolveNowPlayingLabels();
+        _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
+    }
 
     public async Task PlayAsync(Chapter chapter, double startPositionSeconds = 0, CancellationToken cancellationToken = default)
     {
@@ -75,7 +85,8 @@ public sealed class MauiAudioService : IAudioService
                 PlaybackSpeed = CurrentState.PlaybackSpeed <= 0 ? 1.0 : CurrentState.PlaybackSpeed,
                 IsPlaying = _player.IsPlaying
             });
-            _platformMediaSessionService.UpdateNowPlaying(CurrentState, chapter.Title, null);
+            var labels = ResolveNowPlayingLabels();
+            _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
         }
         finally
         {
@@ -90,7 +101,8 @@ public sealed class MauiAudioService : IAudioService
         {
             _player?.Pause();
             PublishStateWithPlayer();
-            _platformMediaSessionService.UpdateNowPlaying(CurrentState, _currentChapter?.Title, null);
+            var labels = ResolveNowPlayingLabels();
+            _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
         }
         finally
         {
@@ -111,7 +123,8 @@ public sealed class MauiAudioService : IAudioService
             _player.Play();
             StartPolling();
             PublishStateWithPlayer();
-            _platformMediaSessionService.UpdateNowPlaying(CurrentState, _currentChapter?.Title, null);
+            var labels = ResolveNowPlayingLabels();
+            _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
         }
         finally
         {
@@ -150,7 +163,8 @@ public sealed class MauiAudioService : IAudioService
             var target = Math.Max(0, positionSeconds);
             TrySeek(_player, target);
             PublishStateWithPlayer();
-            _platformMediaSessionService.UpdateNowPlaying(CurrentState, _currentChapter?.Title, null);
+            var labels = ResolveNowPlayingLabels();
+            _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
         }
         finally
         {
@@ -185,7 +199,8 @@ public sealed class MauiAudioService : IAudioService
                 PlaybackSpeed = normalizedSpeed,
                 IsPlaying = _player?.IsPlaying ?? false
             });
-            _platformMediaSessionService.UpdateNowPlaying(CurrentState, _currentChapter?.Title, null);
+            var labels = ResolveNowPlayingLabels();
+            _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
         }
         finally
         {
@@ -281,7 +296,8 @@ public sealed class MauiAudioService : IAudioService
             PlaybackSpeed = CurrentState.PlaybackSpeed <= 0 ? 1.0 : CurrentState.PlaybackSpeed,
             IsPlaying = _player?.IsPlaying ?? false
         });
-        _platformMediaSessionService.UpdateNowPlaying(CurrentState, _currentChapter?.Title, null);
+        var labels = ResolveNowPlayingLabels();
+        _platformMediaSessionService.UpdateNowPlaying(CurrentState, labels.BookTitle, labels.ChapterTitle);
     }
 
     private void PublishState(PlaybackState state)
@@ -360,5 +376,20 @@ public sealed class MauiAudioService : IAudioService
         }
 
         player.Speed = speed;
+    }
+
+    private (string BookTitle, string ChapterTitle) ResolveNowPlayingLabels()
+    {
+        var chapterTitle = _currentChapterTitleOverride ?? _currentChapter?.Title ?? "Chapter";
+        var bookTitle = _currentBookTitle;
+
+        if (string.IsNullOrWhiteSpace(bookTitle))
+        {
+            var directory = _currentChapter is null ? null : Path.GetDirectoryName(_currentChapter.FilePath);
+            var inferred = string.IsNullOrWhiteSpace(directory) ? null : Path.GetFileName(directory);
+            bookTitle = string.IsNullOrWhiteSpace(inferred) ? "Audiobook" : inferred;
+        }
+
+        return (bookTitle, chapterTitle);
     }
 }

@@ -1,13 +1,14 @@
 @implements IDisposable
 @inject PlayTale.Features.Audiobooks.Services.IAudioService AudioService
+@inject PlayTale.Features.Audiobooks.Services.ILibraryService LibraryService
 @inject NavigationManager Navigation
 
 @if (AudioService.CurrentState.ChapterId is not null)
 {
     <div class="mini-player">
         <div class="mini-player__meta" @onclick="OpenPlayer">
-            <div class="mini-player__title">@Title</div>
-            <div class="mini-player__subtitle">@Subtitle</div>
+            <div class="mini-player__title">@_title</div>
+            <div class="mini-player__subtitle">@_subtitle</div>
         </div>
         <button type="button" class="mini-player__button" @onclick="TogglePlayAsync">
             @(AudioService.CurrentState.IsPlaying ? "Pause" : "Play")
@@ -16,6 +17,11 @@
 }
 
 @code {
+    private string _title = "Now Playing";
+    private string _subtitle = "Tap to open player";
+    private Guid? _lastBookId;
+    private Guid? _lastChapterId;
+
     [Parameter]
     public string Title { get; set; } = "Now Playing";
 
@@ -25,11 +31,41 @@
     protected override void OnInitialized()
     {
         AudioService.PlaybackStateChanged += OnPlaybackStateChanged;
+        _ = RefreshMetadataAsync(AudioService.CurrentState);
     }
 
     private void OnPlaybackStateChanged(object? sender, PlayTale.Features.Audiobooks.Models.PlaybackState e)
     {
-        _ = InvokeAsync(StateHasChanged);
+        _ = RefreshMetadataAsync(e);
+    }
+
+    private async Task RefreshMetadataAsync(PlayTale.Features.Audiobooks.Models.PlaybackState state)
+    {
+        if (state.BookId is null || state.ChapterId is null)
+        {
+            _title = Title;
+            _subtitle = Subtitle;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (_lastBookId == state.BookId && _lastChapterId == state.ChapterId)
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _lastBookId = state.BookId;
+        _lastChapterId = state.ChapterId;
+
+        var book = await LibraryService.GetBookAsync(state.BookId.Value);
+        var chapters = await LibraryService.GetChaptersAsync(state.BookId.Value);
+        var chapter = chapters.FirstOrDefault(x => x.Id == state.ChapterId.Value);
+
+        _title = string.IsNullOrWhiteSpace(book?.Title) ? Title : book.Title;
+        _subtitle = string.IsNullOrWhiteSpace(chapter?.Title) ? Subtitle : chapter.Title;
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OpenPlayer()

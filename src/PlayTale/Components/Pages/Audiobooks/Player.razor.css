@@ -8,91 +8,97 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.9rem;
 }
 
 .header h1 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.22rem;
+    font-weight: 650;
 }
 
 .link-btn {
     border: 0;
     background: transparent;
     color: inherit;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
+    padding: 0.1rem 0.2rem;
 }
 
 .cover {
     width: min(300px, 70vw);
     aspect-ratio: 1;
-    margin: 0 auto 1rem;
-    border-radius: 14px;
+    margin: 0 auto 0.9rem;
+    border-radius: 16px;
     background: linear-gradient(135deg, #ffb149 0%, #d5671f 100%);
     display: grid;
     place-items: center;
     font-size: 4rem;
     font-weight: 700;
     color: #fff;
+    box-shadow: var(--shadow-elev-1);
 }
 
 .cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 14px;
+    border-radius: 16px;
 }
 
 .title {
     text-align: center;
     font-weight: 700;
+    font-size: 1.12rem;
 }
 
 .subtitle {
     text-align: center;
-    color: #b8c2d8;
-    margin-bottom: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0 0.85rem;
+    font-size: 0.95rem;
 }
 
 .times {
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
-    color: #b8c2d8;
+    color: var(--text-secondary);
     margin-bottom: 0.4rem;
 }
 
 input[type="range"] {
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 1.02rem;
+    accent-color: var(--accent);
 }
 
 .controls {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 0.45rem;
+    gap: 0.5rem;
 }
 
 .footer-actions {
     display: flex;
     justify-content: center;
-    gap: 0.5rem;
-    margin-top: 0.8rem;
+    gap: 0.55rem;
+    margin-top: 0.82rem;
 }
 
 .sleep-state {
-    margin-top: 0.7rem;
+    margin-top: 0.74rem;
     text-align: center;
-    color: #b8c2d8;
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .missing-file {
-    border: 1px solid rgba(244, 114, 114, 0.5);
+    border: 1px solid rgba(244, 114, 114, 0.56);
     background: rgba(127, 29, 29, 0.35);
-    border-radius: 10px;
-    padding: 0.7rem;
-    margin-bottom: 0.8rem;
+    border-radius: 12px;
+    padding: 0.74rem;
+    margin-bottom: 0.85rem;
 }
 
 .missing-file p {
@@ -101,21 +107,33 @@ input[type="range"] {
 
 .missing-file__actions {
     display: flex;
-    gap: 0.45rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .primary-btn,
 .secondary-btn {
     border: 0;
-    border-radius: 10px;
-    padding: 0.55rem 0.5rem;
+    border-radius: 11px;
+    padding: 0.62rem 0.54rem;
     color: #fff;
+    font-weight: 600;
 }
 
 .primary-btn {
-    background: #2c7be5;
+    background: var(--accent);
+}
+
+.primary-btn:active {
+    background: var(--accent-pressed);
 }
 
 .secondary-btn {
-    background: rgba(95, 120, 170, 0.35);
+    background: rgba(95, 120, 170, 0.4);
+}
+
+@media (max-width: 420px) {
+    .controls {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }

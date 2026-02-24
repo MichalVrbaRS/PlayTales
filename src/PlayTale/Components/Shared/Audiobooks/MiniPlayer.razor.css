@@ -1,34 +1,44 @@
 .mini-player {
     position: sticky;
-    bottom: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: linear-gradient(180deg, #1b2638 0%, #101927 100%);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 12px;
-    padding: 0.75rem;
+    background: linear-gradient(180deg, var(--bg-card-top) 0%, var(--bg-card-bottom) 100%);
+    border: 1px solid var(--stroke-soft);
+    border-radius: 14px;
+    padding: 0.74rem 0.76rem;
     margin-top: 1rem;
+    box-shadow: var(--shadow-elev-1);
+    backdrop-filter: blur(8px);
 }
 
 .mini-player__meta {
     flex: 1;
     cursor: pointer;
+    min-width: 0;
 }
 
 .mini-player__title {
-    font-weight: 600;
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mini-player__subtitle {
     font-size: 0.8rem;
-    color: #b8c2d8;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mini-player__button {
     border: 0;
-    border-radius: 10px;
-    padding: 0.5rem 0.9rem;
-    background: #2c7be5;
+    border-radius: 11px;
+    padding: 0.53rem 0.92rem;
+    background: var(--accent);
     color: #fff;
+    font-weight: 600;
 }

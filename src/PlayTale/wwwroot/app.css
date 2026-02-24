@@ -3,8 +3,25 @@ body {
     margin: 0;
     min-height: 100%;
     font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-    background: radial-gradient(circle at top, #1f2737 0%, #0c111b 45%, #070b12 100%);
+    background: radial-gradient(circle at 50% -10%, #233450 0%, #0c1422 46%, #060a12 100%);
     color: #eef2ff;
+}
+
+:root {
+    --bg-card-top: rgba(33, 48, 72, 0.9);
+    --bg-card-bottom: rgba(18, 28, 43, 0.92);
+    --stroke-soft: rgba(148, 163, 184, 0.24);
+    --stroke-strong: rgba(148, 163, 184, 0.4);
+    --text-secondary: #b7c3da;
+    --accent: #2f83f7;
+    --accent-pressed: #2269c9;
+    --danger: #c94f4f;
+    --danger-pressed: #a73d3d;
+    --shadow-elev-1: 0 12px 26px rgba(2, 8, 20, 0.35);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 a {
@@ -16,6 +33,18 @@ button,
 input,
 select {
     font: inherit;
+}
+
+button {
+    transition: transform 0.08s ease, filter 0.15s ease, background-color 0.15s ease;
+}
+
+button:active {
+    transform: translateY(1px) scale(0.99);
+}
+
+button:disabled {
+    opacity: 0.6;
 }
 
 #blazor-error-ui {

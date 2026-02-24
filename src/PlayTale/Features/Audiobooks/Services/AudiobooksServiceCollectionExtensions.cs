@@ -19,6 +19,7 @@ public static class AudiobooksServiceCollectionExtensions
         services.AddSingleton<IAudioManager>(_ => AudioManager.Current);
         services.AddSingleton<IAudioService, MauiAudioService>();
         services.AddSingleton<IImportService, PlatformImportService>();
+        services.AddSingleton<IBookCoverService, BookCoverService>();
         services.AddSingleton<ILibraryRepository, SqliteLibraryRepository>();
         services.AddSingleton<ILibraryService, LibraryService>();
         services.AddSingleton<IAudiobooksSettingsStore, SqliteAudiobooksSettingsStore>();

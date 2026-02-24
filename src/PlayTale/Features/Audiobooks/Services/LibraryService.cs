@@ -7,15 +7,18 @@ public sealed class LibraryService : ILibraryService
     private readonly ILibraryRepository _repository;
     private readonly IImportService _importService;
     private readonly IAudiobooksSettingsStore _settingsStore;
+    private readonly IBookCoverService _bookCoverService;
 
     public LibraryService(
         ILibraryRepository repository,
         IImportService importService,
-        IAudiobooksSettingsStore settingsStore)
+        IAudiobooksSettingsStore settingsStore,
+        IBookCoverService bookCoverService)
     {
         _repository = repository;
         _importService = importService;
         _settingsStore = settingsStore;
+        _bookCoverService = bookCoverService;
     }
 
     public Task<IReadOnlyList<Book>> GetLibraryAsync(CancellationToken cancellationToken = default)
@@ -105,7 +108,22 @@ public sealed class LibraryService : ILibraryService
             })
             .ToList();
 
+        var coverPath = await _bookCoverService.ResolveCoverPathAsync(title, author: null, linkedChapters, cancellationToken);
+
         await _repository.SaveBookAsync(book, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(coverPath))
+        {
+            book = new Book
+            {
+                Id = book.Id,
+                Title = book.Title,
+                Author = book.Author,
+                CoverPath = coverPath,
+                LastChapterIndex = book.LastChapterIndex,
+                LastPositionSeconds = book.LastPositionSeconds
+            };
+            await _repository.SaveBookAsync(book, cancellationToken);
+        }
         await _repository.SaveChaptersAsync(book.Id, linkedChapters, cancellationToken);
         await _settingsStore.SetLastOpenedBookIdAsync(book.Id, cancellationToken);
 

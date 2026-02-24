@@ -29,7 +29,19 @@
             </div>
         }
 
-        <div class="cover">@GetCoverGlyph(_book.Title)</div>
+        <div class="cover">
+            @{
+                var coverDataUri = GetCoverDataUri(_book.CoverPath);
+            }
+            @if (!string.IsNullOrWhiteSpace(coverDataUri))
+            {
+                <img src="@coverDataUri" alt="@_book.Title cover" />
+            }
+            else
+            {
+                @GetCoverGlyph(_book.Title)
+            }
+        </div>
 
         <button type="button" class="primary-btn" @onclick="ResumeAsync">
             Continue
@@ -79,6 +91,7 @@
 
     private PlayTale.Features.Audiobooks.Models.Book? _book;
     private IReadOnlyList<PlayTale.Features.Audiobooks.Models.Chapter> _chapters = Array.Empty<PlayTale.Features.Audiobooks.Models.Chapter>();
+    private readonly Dictionary<string, string> _coverDataUriCache = new(StringComparer.OrdinalIgnoreCase);
     private bool _confirmDelete;
     private bool _isDeleting;
     private string? _error;
@@ -193,6 +206,40 @@
     private static string GetCoverGlyph(string title)
     {
         return string.IsNullOrWhiteSpace(title) ? "A" : title.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    private string? GetCoverDataUri(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        if (_coverDataUriCache.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        try
+        {
+            var bytes = File.ReadAllBytes(path);
+            var mimeType = GetImageMimeType(path);
+            var dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
+            _coverDataUriCache[path] = dataUri;
+            return dataUri;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetImageMimeType(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            ? "image/png"
+            : "image/jpeg";
     }
 
     public void Dispose()

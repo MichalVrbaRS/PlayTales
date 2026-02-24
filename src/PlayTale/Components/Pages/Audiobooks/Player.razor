@@ -34,7 +34,19 @@
             </div>
         }
 
-        <div class="cover">@GetCoverGlyph(_book?.Title ?? _currentChapter.Title)</div>
+        <div class="cover">
+            @{
+                var coverDataUri = GetCoverDataUri(_book?.CoverPath);
+            }
+            @if (!string.IsNullOrWhiteSpace(coverDataUri))
+            {
+                <img src="@coverDataUri" alt="@(_book?.Title ?? "Audiobook") cover" />
+            }
+            else
+            {
+                @GetCoverGlyph(_book?.Title ?? _currentChapter.Title)
+            }
+        </div>
         <div class="title">@(_book?.Title ?? "Audiobook")</div>
         <div class="subtitle">@_currentChapter.Title</div>
 
@@ -81,6 +93,7 @@
 
     private PlayTale.Features.Audiobooks.Models.Book? _book;
     private List<PlayTale.Features.Audiobooks.Models.Chapter> _chapters = new();
+    private readonly Dictionary<string, string> _coverDataUriCache = new(StringComparer.OrdinalIgnoreCase);
     private PlayTale.Features.Audiobooks.Models.Chapter? _currentChapter;
     private bool _isSeeking;
     private double _seekValue;
@@ -332,6 +345,40 @@
     private static string GetCoverGlyph(string title)
     {
         return string.IsNullOrWhiteSpace(title) ? "A" : title.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    private string? GetCoverDataUri(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        if (_coverDataUriCache.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        try
+        {
+            var bytes = File.ReadAllBytes(path);
+            var mimeType = GetImageMimeType(path);
+            var dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
+            _coverDataUriCache[path] = dataUri;
+            return dataUri;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetImageMimeType(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            ? "image/png"
+            : "image/jpeg";
     }
 
     private static string FormatRangeNumber(double value)

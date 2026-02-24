@@ -13,6 +13,8 @@ public static class AudiobooksServiceCollectionExtensions
         services.AddSingleton<AudiobooksFeatureState>();
 #if IOS
         services.AddSingleton<IPlatformMediaSessionService, IosPlatformMediaSessionService>();
+#elif ANDROID
+        services.AddSingleton<IPlatformMediaSessionService, AndroidPlatformMediaSessionService>();
 #else
         services.AddSingleton<IPlatformMediaSessionService, NoOpPlatformMediaSessionService>();
 #endif

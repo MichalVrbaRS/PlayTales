@@ -2,6 +2,7 @@ using PlayTale.Features.Audiobooks.Models;
 
 namespace PlayTale.Features.Audiobooks.Services;
 
+#pragma warning disable CS0067
 public sealed class NoOpPlatformMediaSessionService : IPlatformMediaSessionService
 {
     public event EventHandler? PlayRequested;
@@ -23,3 +24,4 @@ public sealed class NoOpPlatformMediaSessionService : IPlatformMediaSessionServi
     {
     }
 }
+#pragma warning restore CS0067

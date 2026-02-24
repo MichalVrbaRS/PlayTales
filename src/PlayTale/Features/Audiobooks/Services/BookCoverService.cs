@@ -63,6 +63,9 @@ public sealed class BookCoverService : IBookCoverService
 
     private static byte[]? TryExtractEmbeddedCoverBytes(IReadOnlyList<Chapter> chapters)
     {
+#if ANDROID
+        return null;
+#else
         foreach (var chapter in chapters)
         {
             if (string.IsNullOrWhiteSpace(chapter.FilePath) || !File.Exists(chapter.FilePath))
@@ -86,6 +89,7 @@ public sealed class BookCoverService : IBookCoverService
         }
 
         return null;
+#endif
     }
 
     private static async Task<byte[]?> TryDownloadCoverBytesAsync(string bookTitle, string? author, CancellationToken cancellationToken)

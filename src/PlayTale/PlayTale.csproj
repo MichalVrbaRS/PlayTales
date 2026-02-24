@@ -19,6 +19,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+        <NoWarn>$(NoWarn);NU1701</NoWarn>
 
         <!-- Enable XAML source generation for faster build times and improved performance.
              This generates C# code from XAML at compile time instead of runtime inflation.
@@ -72,6 +73,9 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
         <PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
         <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'android'">
         <PackageReference Include="taglib" Version="2.1.0" />
     </ItemGroup>
 

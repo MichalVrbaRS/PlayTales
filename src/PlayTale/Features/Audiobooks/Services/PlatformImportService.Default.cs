@@ -4,7 +4,7 @@ namespace PlayTale.Features.Audiobooks.Services;
 
 public sealed partial class PlatformImportService
 {
-#if !IOS && !WINDOWS
+#if !IOS && !WINDOWS && !ANDROID
     private async partial Task<IReadOnlyList<ImportSource>> PickPlatformSourcesAsync(CancellationToken cancellationToken)
     {
         var pickedFiles = await FilePicker.Default.PickMultipleAsync(new PickOptions

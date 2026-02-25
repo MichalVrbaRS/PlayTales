@@ -10,7 +10,7 @@
     <header class="screen__header">
         <h1>Audiobooks</h1>
         <div class="header-actions">
-            <button type="button" class="icon-btn icon-btn--ghost" title="Search (coming soon)" @onclick="OpenSearch">
+            <button type="button" class="icon-btn icon-btn--ghost" title="Search" @onclick="ToggleSearch">
                 ⌕
             </button>
             <button type="button" class="icon-btn" title="Import audiobook" disabled="@_isImporting" @onclick="ImportAsync">
@@ -19,13 +19,33 @@
         </div>
     </header>
 
+    @if (_isSearchOpen)
+    {
+        <div class="search-panel">
+            <input type="search"
+                   class="search-input"
+                   placeholder="Search books..."
+                   value="@_searchQuery"
+                   @oninput="OnSearchInput" />
+            @if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                <button type="button" class="icon-btn icon-btn--ghost search-clear" title="Clear search" @onclick="ClearSearch">
+                    ✕
+                </button>
+            }
+        </div>
+    }
+
     <div class="brand-hero" aria-hidden="true">
         <img src="/images/playtaleappicon.png?v=20260224-2" alt="PlayTale" />
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <p class="error">@_error</p>
+        <div class="state-panel state-panel--error">
+            <div class="state-panel__title">Import failed</div>
+            <div class="state-panel__text">@_error</div>
+        </div>
     }
 
     @if (_books.Count == 0)
@@ -40,7 +60,7 @@
     else
     {
         <div class="book-list">
-            @foreach (var book in _books)
+            @foreach (var book in FilteredBooks)
             {
                 <button type="button" class="book-row" @onclick="() => OpenBook(book.Id)">
                     <div class="book-row__cover">
@@ -64,6 +84,14 @@
                 </button>
             }
         </div>
+
+        @if (FilteredBooks.Count == 0)
+        {
+            <div class="state-panel">
+                <div class="state-panel__title">No results</div>
+                <div class="state-panel__text">Try a different title or clear search.</div>
+            </div>
+        }
     }
 
     <PlayTale.Components.Shared.Audiobooks.MiniPlayer />
@@ -74,6 +102,8 @@
     private readonly Dictionary<string, string> _coverDataUriCache = new(StringComparer.OrdinalIgnoreCase);
     private bool _isImporting;
     private bool _reimportAttempted;
+    private bool _isSearchOpen;
+    private string _searchQuery = string.Empty;
     private string? _error;
 
     [Parameter]
@@ -133,8 +163,39 @@
         Navigation.NavigateTo($"/audiobooks/book/{bookId:D}");
     }
 
-    private void OpenSearch()
+    private IReadOnlyList<PlayTale.Features.Audiobooks.Models.Book> FilteredBooks
     {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                return _books;
+            }
+
+            var query = _searchQuery.Trim();
+            return _books
+                .Where(book => book.Title.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private void ToggleSearch()
+    {
+        _isSearchOpen = !_isSearchOpen;
+        if (!_isSearchOpen)
+        {
+            _searchQuery = string.Empty;
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs args)
+    {
+        _searchQuery = args.Value?.ToString() ?? string.Empty;
+    }
+
+    private void ClearSearch()
+    {
+        _searchQuery = string.Empty;
     }
 
     private static string GetProgressText(PlayTale.Features.Audiobooks.Models.Book book)

@@ -166,3 +166,23 @@ select {
     margin-top: 0.55rem;
     width: auto;
 }
+
+@media (max-width: 360px) {
+    .screen {
+        padding-inline: 0.75rem;
+    }
+
+    .presets {
+        gap: 0.3rem;
+    }
+
+    .preset-chip {
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@media (min-width: 900px) {
+    .screen {
+        max-width: 620px;
+    }
+}

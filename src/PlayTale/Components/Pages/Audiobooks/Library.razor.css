@@ -25,6 +25,28 @@
     gap: 0.42rem;
 }
 
+.search-panel {
+    margin-bottom: 0.55rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--stroke-strong);
+    border-radius: 999px;
+    padding: 0.5rem 0.78rem;
+    background: rgba(12, 20, 32, 0.82);
+    color: #eaf1ff;
+    font-size: var(--text-sm);
+}
+
+.search-clear {
+    flex: 0 0 auto;
+}
+
 .brand-hero {
     width: min(260px, 72vw);
     height: 176px;
@@ -73,6 +95,31 @@
     box-shadow: var(--shadow-elev-1);
 }
 
+.state-panel {
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    background: var(--surface-card);
+    margin-top: 0.55rem;
+}
+
+.state-panel--error {
+    border-color: rgba(244, 114, 114, 0.45);
+    background: rgba(127, 29, 29, 0.28);
+    margin-bottom: 0.55rem;
+}
+
+.state-panel__title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-title);
+}
+
+.state-panel__text {
+    margin-top: 0.15rem;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
 .primary-btn {
     border: 0;
     border-radius: 10px;
@@ -112,6 +159,10 @@
 
 .book-row:active {
     filter: brightness(1.06);
+}
+
+.book-row:hover {
+    transform: translateY(-1px);
 }
 
 .book-row__cover {
@@ -158,4 +209,25 @@
 .error {
     color: #ffb4b4;
     margin: 0 0 0.8rem;
+}
+
+@media (max-width: 360px) {
+    .screen {
+        padding-inline: 0.75rem;
+    }
+
+    .brand-hero {
+        width: min(230px, 76vw);
+        height: 156px;
+    }
+
+    .screen__header h1 {
+        font-size: 1.62rem;
+    }
+}
+
+@media (min-width: 900px) {
+    .screen {
+        max-width: 620px;
+    }
 }

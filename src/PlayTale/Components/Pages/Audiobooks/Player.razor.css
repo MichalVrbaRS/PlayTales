@@ -77,26 +77,63 @@ input[type="range"] {
     width: 100%;
     margin-bottom: 1.02rem;
     accent-color: var(--accent);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.28);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    border-radius: 999px;
+    background: #fff;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 4px rgba(47, 131, 247, 0.18);
+}
+
+input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.28);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #fff;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 4px rgba(47, 131, 247, 0.18);
 }
 
 .controls {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.44rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.28rem;
     align-items: center;
 }
 
 .control-btn {
+    width: 36px;
     border-radius: 999px;
-    min-height: 42px;
+    min-height: 36px;
     padding: 0;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 700;
 }
 
 .control-btn--main {
-    min-height: 56px;
-    font-size: 1.08rem;
+    width: 46px;
+    min-height: 46px;
+    font-size: 0.94rem;
     box-shadow: var(--shadow-elev-1);
 }
 
@@ -126,6 +163,24 @@ input[type="range"] {
     border-radius: 12px;
     padding: 0.74rem;
     margin-bottom: 0.85rem;
+}
+
+.state-panel {
+    border: 1px solid var(--border-card);
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    background: var(--surface-card);
+}
+
+.state-panel__title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-title);
+}
+
+.state-panel__text {
+    margin-top: 0.15rem;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
 }
 
 .missing-file p {
@@ -176,10 +231,22 @@ input[type="range"] {
 
 @media (max-width: 420px) {
     .controls {
-        grid-template-columns: repeat(3, 1fr);
+        gap: 0.24rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .screen {
+        padding-inline: 0.75rem;
     }
 
-    .control-btn--main {
-        grid-column: span 3;
+    .controls {
+        gap: 0.34rem;
+    }
+}
+
+@media (min-width: 900px) {
+    .screen {
+        max-width: 620px;
     }
 }

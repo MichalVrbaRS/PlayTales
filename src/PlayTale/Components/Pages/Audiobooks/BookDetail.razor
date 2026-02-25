@@ -14,7 +14,10 @@
 
     @if (_book is null)
     {
-        <p>Book not found.</p>
+        <div class="state-panel">
+            <div class="state-panel__title">Book not found</div>
+            <div class="state-panel__text">Return to your library and import again if needed.</div>
+        </div>
     }
     else
     {
@@ -67,7 +70,10 @@
 
         @if (!string.IsNullOrWhiteSpace(_error))
         {
-            <p class="error">@_error</p>
+            <div class="state-panel state-panel--error">
+                <div class="state-panel__title">Action failed</div>
+                <div class="state-panel__text">@_error</div>
+            </div>
         }
 
         <div class="chapters">
@@ -75,7 +81,17 @@
             {
                 var isCurrent = AudioService.CurrentState.ChapterId == chapter.Id;
                 <button type="button" class="chapter @(isCurrent ? "chapter--current" : string.Empty)" @onclick="() => StartChapterAsync(chapter)">
-                    <span>@chapter.Title</span>
+                    <span class="chapter__meta">
+                        <span class="chapter__title">@chapter.Title</span>
+                        <span class="chapter__sub">
+                            @GetChapterStatus(chapter)
+                            @if (chapter.DurationSeconds > 0)
+                            {
+                                <span class="chapter__dot">•</span>
+                                <span>@FormatTime(chapter.DurationSeconds)</span>
+                            }
+                        </span>
+                    </span>
                     <span>›</span>
                 </button>
             }
@@ -245,5 +261,38 @@
     public void Dispose()
     {
         AudioService.PlaybackStateChanged -= OnPlaybackStateChanged;
+    }
+
+    private string GetChapterStatus(PlayTale.Features.Audiobooks.Models.Chapter chapter)
+    {
+        if (_book is null)
+        {
+            return "Not started";
+        }
+
+        var completedByIndex = chapter.OrderIndex < _book.LastChapterIndex;
+        var nearEnd = chapter.DurationSeconds > 1 && chapter.LastPositionSeconds >= chapter.DurationSeconds - 1;
+        if (completedByIndex || nearEnd)
+        {
+            return "Played";
+        }
+
+        if (chapter.LastPositionSeconds > 0)
+        {
+            return $"At {FormatTime(chapter.LastPositionSeconds)}";
+        }
+
+        if (chapter.OrderIndex == _book.LastChapterIndex && _book.LastPositionSeconds > 0)
+        {
+            return $"At {FormatTime(_book.LastPositionSeconds)}";
+        }
+
+        return "Not started";
+    }
+
+    private static string FormatTime(double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(Math.Max(0, seconds));
+        return ts.TotalHours >= 1 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
     }
 }

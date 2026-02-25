@@ -44,23 +44,23 @@
         </div>
 
         <button type="button" class="primary-btn" @onclick="ResumeAsync">
-            Continue
+            ▶ Continue
         </button>
 
         <div class="actions">
             @if (!_confirmDelete)
             {
                 <button type="button" class="danger-btn" disabled="@_isDeleting" @onclick="ArmDelete">
-                    Remove From Library
+                    ✖ Remove
                 </button>
             }
             else
             {
                 <button type="button" class="danger-btn" disabled="@_isDeleting" @onclick="DeleteBookAsync">
-                    @(_isDeleting ? "Removing..." : "Confirm Remove")
+                    @(_isDeleting ? "Removing..." : "✖ Confirm")
                 </button>
-                <button type="button" class="secondary-btn" disabled="@_isDeleting" @onclick="CancelDelete">
-                    Cancel
+                <button type="button" class="secondary-btn secondary-btn--icon" title="Cancel" disabled="@_isDeleting" @onclick="CancelDelete">
+                    ✕
                 </button>
             }
         </div>

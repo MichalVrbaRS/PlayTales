@@ -12,35 +12,63 @@
     </header>
 
     <div class="card">
-        <label class="label" for="minutes">Stop After</label>
-        <select id="minutes" @bind="_minutes">
-            <option value="10">10 minutes</option>
-            <option value="15">15 minutes</option>
-            <option value="20">20 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45">45 minutes</option>
-            <option value="60">60 minutes</option>
-        </select>
+        <section class="card__section">
+            <label class="label" for="minutes">Stop After</label>
+            <div class="presets">
+                @foreach (var preset in PresetMinutes)
+                {
+                    <button type="button"
+                            class="preset-chip @(preset == _minutes ? "preset-chip--active" : string.Empty)"
+                            @onclick="() => SetPresetMinutes(preset)">
+                        @preset min
+                    </button>
+                }
+            </div>
+            <select id="minutes" @bind="_minutes">
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">60 minutes</option>
+            </select>
+        </section>
 
-        <label class="label" for="mode">Mode</label>
-        <select id="mode" @bind="_mode">
-            <option value="duration">After selected minutes</option>
-            <option value="chapter">At end of current chapter</option>
-            <option value="chapters">After 2 chapters</option>
-        </select>
+        <section class="card__section">
+            <label class="label" for="mode">At End Of Current Chapter</label>
+            <select id="mode" @bind="_mode">
+                <option value="duration">After selected minutes</option>
+                <option value="chapter">At end of current chapter</option>
+                <option value="chapters">After 2 chapters</option>
+            </select>
+        </section>
 
-        <button type="button" class="primary-btn" @onclick="StartTimerAsync">Start</button>
-        <button type="button" class="secondary-btn" @onclick="BackToPlayer">Cancel</button>
+        <div class="actions">
+            <button type="button" class="primary-btn" @onclick="StartTimerAsync">▶ Start</button>
+            <button type="button" class="secondary-btn secondary-btn--icon" title="Cancel" @onclick="BackToPlayer">✕</button>
+        </div>
     </div>
 
     @if (_state.IsActive)
     {
-        <p class="hint">@GetActiveText(_state)</p>
-        <button type="button" class="secondary-btn" @onclick="CancelTimerAsync">Disable Sleep Timer</button>
+        <div class="state-card">
+            <div class="state-card__headline">
+                <span class="state-dot"></span>
+                <span class="state-label">Sleep Timer Active</span>
+            </div>
+            @if (_state.Mode == PlayTale.Features.Audiobooks.Models.SleepTimerMode.Duration && _state.EndsAtUtc is not null)
+            {
+                <div class="countdown">@FormatRemaining(_state.EndsAtUtc.Value)</div>
+            }
+            <p class="hint">@GetActiveText(_state)</p>
+            <button type="button" class="secondary-btn state-card__button" @onclick="CancelTimerAsync">⏹ Disable</button>
+        </div>
     }
     else if (_startedMessage is not null)
     {
-        <p class="hint">@_startedMessage</p>
+        <div class="state-card">
+            <p class="hint">@_startedMessage</p>
+        </div>
     }
 </section>
 
@@ -52,6 +80,7 @@
     public Guid ChapterId { get; set; }
 
     private int _minutes = 15;
+    private static readonly int[] PresetMinutes = { 15, 30, 45, 60 };
     private string _mode = "duration";
     private string? _startedMessage;
     private CancellationTokenSource? _countdownCts;
@@ -85,6 +114,11 @@
         }
 
         BackToPlayer();
+    }
+
+    private void SetPresetMinutes(int minutes)
+    {
+        _minutes = minutes;
     }
 
     private async Task CancelTimerAsync()

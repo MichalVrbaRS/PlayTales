@@ -23,9 +23,14 @@
                 <span style="@($"width:{_progressPercent:0.##}%;")"></span>
             </div>
         </div>
-        <button type="button" class="mini-player__button" @onclick="TogglePlayAsync">
-            @(AudioService.CurrentState.IsPlaying ? "II" : "▶")
-        </button>
+        <div class="mini-player__controls">
+            <button type="button" class="mini-player__button" title="Play or pause" @onclick="TogglePlayAsync">
+                @(AudioService.CurrentState.IsPlaying ? "II" : "▶")
+            </button>
+            <button type="button" class="mini-player__button mini-player__button--ghost" title="Skip forward 30 seconds" @onclick="SkipForwardAsync">
+                ⏭
+            </button>
+        </div>
     </div>
 }
 
@@ -136,6 +141,11 @@
         }
 
         await AudioService.ResumeAsync();
+    }
+
+    private async Task SkipForwardAsync()
+    {
+        await AudioService.SkipByAsync(30);
     }
 
     public void Dispose()

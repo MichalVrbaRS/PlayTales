@@ -8,24 +8,38 @@ body {
 }
 
 .status-bar-safe-area {
-    height: env(safe-area-inset-top, 0px);
+    height: var(--safe-top);
 }
 
 #app {
-    min-height: calc(100vh - env(safe-area-inset-top, 0px));
+    min-height: calc(100vh - var(--safe-top));
 }
 
 :root {
-    --bg-card-top: rgba(33, 48, 72, 0.9);
-    --bg-card-bottom: rgba(18, 28, 43, 0.92);
+    --icon-btn-size: 34px;
+    --bg-card-top: rgba(31, 46, 69, 0.9);
+    --bg-card-bottom: rgba(19, 30, 46, 0.92);
+    --surface-card: linear-gradient(180deg, var(--bg-card-top) 0%, var(--bg-card-bottom) 100%);
     --stroke-soft: rgba(148, 163, 184, 0.24);
-    --stroke-strong: rgba(148, 163, 184, 0.4);
+    --stroke-strong: rgba(148, 163, 184, 0.32);
+    --border-card: var(--stroke-soft);
     --text-secondary: #b7c3da;
     --accent: #2f83f7;
     --accent-pressed: #2269c9;
     --danger: #c94f4f;
     --danger-pressed: #a73d3d;
     --shadow-elev-1: 0 12px 26px rgba(2, 8, 20, 0.35);
+    --cover-radius: 16px;
+    --cover-shadow: 0 14px 28px rgba(2, 8, 20, 0.38);
+    --title-xl: 1.82rem;
+    --title-lg: 1.2rem;
+    --title-md: 1.02rem;
+    --text-sm: 0.82rem;
+    --text-xs: 0.77rem;
+    --weight-title: 650;
+    --weight-strong: 600;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * {
@@ -45,6 +59,32 @@ select {
 
 button {
     transition: transform 0.08s ease, filter 0.15s ease, background-color 0.15s ease;
+}
+
+.book-row,
+.chapter,
+.mini-player,
+.card,
+.state-card,
+.cover,
+.book-row__cover {
+    transition: transform 0.16s ease, box-shadow 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
+}
+
+.screen {
+    animation: screen-fade 0.2s ease-out;
+}
+
+@keyframes screen-fade {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 button:active {

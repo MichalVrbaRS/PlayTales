@@ -9,9 +9,14 @@
 <section class="screen">
     <header class="screen__header">
         <h1>Audiobooks</h1>
-        <button type="button" class="import-btn" title="Import audiobook" disabled="@_isImporting" @onclick="ImportAsync">
-            @(_isImporting ? "Importing..." : "Import")
-        </button>
+        <div class="header-actions">
+            <button type="button" class="icon-btn icon-btn--ghost" title="Search (coming soon)" @onclick="OpenSearch">
+                ⌕
+            </button>
+            <button type="button" class="icon-btn" title="Import audiobook" disabled="@_isImporting" @onclick="ImportAsync">
+                @(_isImporting ? "…" : "⬇")
+            </button>
+        </div>
     </header>
 
     <div class="brand-hero" aria-hidden="true">
@@ -28,7 +33,7 @@
         <div class="empty-state">
             <p>No audiobooks yet</p>
             <button type="button" class="primary-btn" disabled="@_isImporting" @onclick="ImportAsync">
-                Import Audiobook
+                ⬇ Import
             </button>
         </div>
     }
@@ -126,6 +131,10 @@
     private void OpenBook(Guid bookId)
     {
         Navigation.NavigateTo($"/audiobooks/book/{bookId:D}");
+    }
+
+    private void OpenSearch()
+    {
     }
 
     private static string GetProgressText(PlayTale.Features.Audiobooks.Models.Book book)
